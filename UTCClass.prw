@@ -41,10 +41,6 @@ CLASS UTCClass FROM FwModelEvent
 	DATA lNegativeTest		as logical
 	DATA lTemplate		as logical
 	
-	DATA cKanoah		as char
-	DATA cKGrids			as char
-	DATA cKFields			as char
-	
 	METHOD New()  constructor 	
 	METHOD SetProgram()
 	//Padroes do Observer
@@ -66,6 +62,7 @@ CLASS UTCClass FROM FwModelEvent
 	METHOD AddSeek()
 	METHOD GeneratePrw()
 	METHOD GenerateKanoah()
+	METHOD FieldTypeStr()
 	
 
 END CLASS
@@ -166,9 +163,6 @@ Method Activate(oModel,lCopy) Class UTCClass
 ::cNegVal	:= ""
 ::lNegativeTest := .F.
 ::lTemplate	:= (cPaisLoc == 'RUS')
-::cKanoah	:= ""
-::cKGrids	:= ""
-::cKFields	:= ""
 
 If !Empty(::DEF_MASTER)
 	//clear arrays for a new test case
@@ -203,17 +197,6 @@ EndIf
 ::CKP_ASSERT 	:= Array(1,3)
 
 ::SetOperation(oModel:getOperation()) //Set Operation
-If oModel:getOperation() == 3
-	::cKanoah += "Clicar em Incluir" + CRLF + CRLF
-ElseIf oModel:getOperation() == 4
-	::cKanoah += "Clicar em Alterar" + CRLF + CRLF
-ElseIf oModel:getOperation() == 5
-	::cKanoah += "Clicar em Excluir" + CRLF + CRLF
-EndIf
-
-::cKanoah += "Selecionar a Filial " + AllTrim(xFilial()) + CRLF + CRLF
-
-::cKanoah += "Preencher os campos abaixo:" + CRLF
 
 If ::OPERATION[2] == "4" .OR. ::OPERATION[2] == "5" //edit or delete
 	::AddSeek(oModel)
@@ -237,22 +220,18 @@ If Empty(::CKP_QUERY[1][2]) .And. ::lNegativeTest
 	oSubModel := oModel:GetModel(cModelId)
 	
 	::UpdNegative(oSubModel,cModelId)
-	::cKanoah +=  CRLF + "Clicar em Confirmar" + CRLF
-	::cKanoah += "Clicar em Fechar" + CRLF
 	If ::lTemplate
 		::GenerateCsv()
 	Else
-		::GeneratePrw()
+		::GeneratePrw(oModel)
 	EndIf
 	
 ElseIf !Empty(::CKP_QUERY[1][2]) .Or. ::OPERATION[2] == "5" // if is empty, it is just closing the routine or delete operatio
 
-	::cKanoah += CRLF + "Clicar em Confirmar" + CRLF
-	::cKanoah += "Clicar em Fechar" + CRLF
 	If ::lTemplate
 		::GenerateCsv()
 	Else
-		::GeneratePrw()
+		::GeneratePrw(oModel)
 	EndIf
 	
 EndIf
@@ -275,24 +254,23 @@ If cAction == "SETVALUE" .And. xValue <> NIL .And. ::DEF_MASTER <> NIL
 	If ValType(xValue) == "C"
 		cValue := xValue
 	ElseIf ValType(xValue) == "D"
-		cValue := allTrim(dtos(xValue))
+		cValue := allTrim(dtoC(xValue))
 	Else
 		cValue := allTrim(str(xValue))
 	EndIf
 	
-	If ::lNegativeTest
-		::cNegField := cId
-		::cNegVal := cValue
-
-		::UpdNegative(oSubModel,cModelId,0)
-	EndIf
-
-	::UpdMaster(cModelID,cId,cValue)
 	
-	If !(cId $ ::cKFields)
-		::cKanoah += AllTrim(FWX3Titulo(cId)) + " (" + cId + "):" + cValue + CRLF
-		::cKFields += "|" + cId
-	EndIf
+	//If oSubModel:CanSetValue(cId)
+		If ::lNegativeTest
+			::cNegField := cId
+			::cNegVal := cValue
+
+			::UpdNegative(oSubModel,cModelId,0)
+		EndIf
+
+		::UpdMaster(cModelID,cId,cValue)
+	//EndIf
+	
 	conout(cId + " FIELD PRE")
 EndIf
 
@@ -316,34 +294,24 @@ If cAction == "SETVALUE" .And. xValue <> NIL
 	If ValType(xValue) == "C"
 		cValue := xValue
 	ElseIf ValType(xValue) == "D"
-		cValue := allTrim(dtos(xValue))
+		cValue := allTrim(dtoC(xValue))
 	Else
 		cValue := allTrim(str(xValue))
 	EndIf
+	
 
-	 ::UpdDetail(cModelID,nLine,cId,cValue)
+	//If oSubModel:CanSetValue(cId)
+		::UpdDetail(cModelID,nLine,cId,cValue)
 
-	If !(cId $ ::cKFields)
-		
-		::cKanoah +=  AllTrim(FWX3Titulo(cId)) + " (" + cId + "):" + cValue + CRLF
-		::cKFields += "|" + cId
-	EndIf
-
-	If ::lNegativeTest
-		::cNegField := cId
-		::cNegVal := cValue
-		
-		::UpdNegative(oSubModel,cModelId,nLine)
-	EndIf
+		If ::lNegativeTest
+			::cNegField := cId
+			::cNegVal := cValue
+			
+			::UpdNegative(oSubModel,cModelId,nLine)
+		EndIf
+	//EndIf
 
 	conout(cId + " GRID PRE")
-
-ElseIf cAction == 'ADDLINE'
-	::cKanoah += CRLF + "SETA PARA BAIXO" + CRLF
-
-ElseIf cAction == 'CANSETVALUE' .And. !(cModelId $ ::cKGrids)
-	::cKanoah += CRLF + "Clicar na Folder " + cModelId + CRLF
-	::cKGrids += "|" + cModelId
 EndIf
 
 
@@ -571,6 +539,7 @@ Local nPosField as numeric
 				//add new field in the structure
 				aAdd(::DEF_MASTER[nPosModel],cId)
 				aAdd(::DATA_MASTER[nPosModel],cValue)
+				
 			EndIf
 		Else
 			//add new Master
@@ -1126,15 +1095,18 @@ generates the PRW file
 
 /*/
 //-------------------------------------------------------------------
-METHOD GeneratePRW() Class UTCClASS
+METHOD GeneratePRW(oModel) Class UTCClASS
 Local lRet as logical 
 Local nBFile as numeric
-Local nBFileKanoah as numeric
 Local cFileName as Character
 Local cContFile as Character
 Local n 	as numeric
 Local nItem as numeric
 Local cName as character
+Local cConteType as Character
+
+
+
 lRet := .T.
 
 cName := Alltrim(GetRoutine("Test Name"))
@@ -1144,10 +1116,8 @@ cFileName := ::_cProgram
 // PRW Creation 
 If !File(cFileName + "_" + cName + ".PRW") //check if the file already exist, and create next one
 	nBFile := FCREATE(cFileName + "_" +  cName + ".PRW")
-	nBFileKanoah := FCREATE(cFileName + "_" +  cName + ".TXT")
 Else
 	nBFile := FCREATE(cFileName + "_" + cName + "_002"+".PRW")//changehere
-	nBFileKanoah := FCREATE(cFileName + "_" + cName + "_002"+".TXT")//changehere
 EndIf
 
 If nBFile == -1 //check if was possible to crate the file
@@ -1164,10 +1134,10 @@ Else
 	cContFile += "@version 	1.0"					+ CRLF
 	cContFile += "/*/" + CRLF
 
-	cContFile += "METHOD " + cFileName + "_01() CLASS CNTA300TestCase" + CRLF
+	cContFile += "METHOD " + cFileName + "_01() CLASS " + cFileName + "TestCase" + CRLF
 	cContFile += "Local oHelper		:= FWTestHelper():New()" + CRLF
 	cContFile += "Local oModel		:= NIL" + CRLF
-	cContFile += "Local dDataBase		:= cTod(" + dToC(&(::DEF_VARS[3])) +")" + CRLF
+	cContFile += "Local dDataBase		:= cTod('" + dToC(&(::DEF_VARS[3])) +"')" + CRLF
 	cContFile += "Local cQuery		:= ''" + CRLF
 	
 	cContFile += "Local oModel	:= FWLoadModel('" + cFileName + "')" + CRLF 
@@ -1187,18 +1157,24 @@ Else
 	
 	cContFile += "//-- Ativa o modelo do MVC" 	+ CRLF
 	cContFile += "oHelper:SetModel( oModel )" 	+ CRLF
-	cContFile += "oHelper:SetCommit()" 			+ CRLF
+	If cPaisLoc == 'RUS'
+		cContFile += "oHelper:SetCommit()" 			+ CRLF
+	EndIf
 	cContFile += "oHelper:Activate()" 			+ CRLF
 	
-
 	//Master
 	If !Empty(::DEF_MASTER[1][2]) //If we don't have Master it is DELETE
 		For n := 1 to Len(::DEF_MASTER)  
 			cContFile += CRLF //master Head
 			//master
 			cContFile += "//Start " + ::DEF_MASTER[n][2] + CRLF
-			For nItem := 3 to Len(::DEF_MASTER[n]) 
-				cContFile += "oHelper:UTSetValue('" + ::DEF_MASTER[n][2] + "','" + ::DEF_MASTER[n][nItem] + "', '" + ::DATA_MASTER[n][nItem] + "')" + CRLF
+
+			For nItem := 3 to Len(::DEF_MASTER[n])
+				//return the transformation	
+				cConteType := ::FieldTypeStr(oModel:GetModel(::DEF_MASTER[n][2]):GetStruct():GetFields(),::DEF_MASTER[n][nItem],::DATA_MASTER[n][nItem])
+				If !Empty(cConteType)
+					cContFile += "oHelper:UTSetValue('" + ::DEF_MASTER[n][2] + "','" + ::DEF_MASTER[n][nItem] + "', " + cConteType + ")" + CRLF
+				EndIf
 			Next
 		Next
 	EndIf
@@ -1217,7 +1193,10 @@ Else
 			cContFile += "//Start " + ::DATA_ITEMS[n][2] + CRLF
 			
 			For nItem := 3 to Len(::DEF_ITEMS[n])
-				cContFile += "oHelper:UTSetValue('" + ::DATA_ITEMS[n][2] + "','" + ::DEF_ITEMS[n][nItem] + "', '" + ::DATA_ITEMS[n][nItem] + "')" + CRLF
+				cConteType := ::FieldTypeStr(oModel:GetModel(::DATA_ITEMS[n][2]):GetStruct():GetFields(),::DEF_ITEMS[n][nItem],::DATA_ITEMS[n][nItem])
+				If !Empty(cConteType)	
+					cContFile += "oHelper:UTSetValue('" + ::DATA_ITEMS[n][2] + "','" + ::DEF_ITEMS[n][nItem] + "', " + cConteType + ")" + CRLF
+				EndIf
 			Next
 		Next
 	EndIf
@@ -1234,7 +1213,7 @@ Else
 		cContFile += CRLF //Check Points
 		cContFile += "// Query " + ::CKP_QUERY[n][2] +CRLF //Check Points
 		
-		cContFile += "cQuery := " + ::CKP_QUERY[n][3] + CRLF
+		cContFile += 'cQuery := "' + ::CKP_QUERY[n][3] + '"' + CRLF
 		//Query
 		For nItem := 3 to Len(::CKP_DEF[n]) 
 			IF!(::CKP_RESULT[n][nItem] == NIL)
@@ -1250,11 +1229,11 @@ Else
 	conout("Criado PRW")
 
 	FWRITE(nBFile,cContFile)
-	FWRITE(nBFileKanoah,::cKanoah)
 	
 	FCLOSE(nBFile)
-	FCLOSE(nBFileKanoah)
-
+	
+	::GenerateKanoah(cName)
+	
 	MsgInfo(cFileName + "_" +  cName + ".PRW successfully generated", 'Test Case')
 EndIf
 
@@ -1270,6 +1249,151 @@ generates the Test Case in Kanoah file
 
 /*/
 //-------------------------------------------------------------------
-METHOD GenerateKanoah() Class UTCClASS
+METHOD GenerateKanoah(cName) Class UTCClASS
+Local lRet as logical 
+Local nBFile as numeric
+Local nBFile as numeric
+Local cFileName as Character
+Local cContFile as Character
+Local n 	as numeric
+Local nItem as numeric
+lRet := .T.
+
+cFileName := ::_cProgram 
+
+// Kanoah Creation 
+If !File(cFileName + "_" + cName + ".TXT") //check if the file already exist, and create next one
+	nBFile := FCREATE(cFileName + "_" +  cName + ".TXT")
+Else
+	nBFile := FCREATE(cFileName + "_" + cName + "_002"+".TXT")//changehere
+EndIf
+
+If nBFile == -1 //check if was possible to crate the file
+  MsgStop('Erro ao criar destino. Ferror = '+str(ferror(),4),'Erro')
+  lRet := .F.
+Else
+	//variables
+	cContFile :="" //start writing the file
+
+	//DBSEEK 
+	If !Empty(::SEEK[1]) //check if there is SEEK in this test case (Update or delete)
+		cContFile += CRLF
+		cContFile += "Procurar por: " + ::SEEK[3] + ": " + ::SEEK[4] + CRLF
+		cContFile += CRLF
+	EndIf
+	
+	//Feed Variables and Activate
+	If ::OPERATION[2] == '3'
+		cContFile += "Clicar em Incluir" + CRLF + CRLF
+	ElseIf ::OPERATION[2] == '4'
+		cContFile += "Clicar em Alterar" + CRLF + CRLF
+	ElseIf ::OPERATION[2] == '5'
+		cContFile += "Clicar em Excluir" + CRLF + CRLF
+	EndIf
+
+	cContFile += "Selecionar a Filial " + AllTrim(xFilial()) + CRLF + CRLF
+
+	cContFile += "Preencher os campos abaixo:" + CRLF
+
+	//Master
+	If !Empty(::DEF_MASTER[1][2]) //If we don't have Master it is DELETE
+		For n := 1 to Len(::DEF_MASTER)  
+			cContFile += CRLF //master Head
+			//master
+			For nItem := 3 to Len(::DEF_MASTER[n]) 
+				cContFile += AllTrim(FWX3Titulo(::DEF_MASTER[n][nItem])) + " (" + ::DEF_MASTER[n][nItem] + "):" + ::DATA_MASTER[n][nItem] + CRLF
+			Next
+		Next
+	EndIf
+
+	//Details
+	If !Empty(::DEF_ITEMS[1][2]) //check if we have details in this test
+		For n := 1 to Len(::DEF_ITEMS) 
+			
+			//validation to check if we need to use addLine
+			If n > 1 .And. ::DATA_ITEMS[n][2] == ::DATA_ITEMS[(n-1)][2] 
+				cContFile += CRLF + "SETA PARA BAIXO" + CRLF
+			EndIf
+			
+			cContFile += CRLF //start Details
+			cContFile += CRLF + "Clicar na Folder " + ::DATA_ITEMS[n][2] + CRLF
+			
+			For nItem := 3 to Len(::DEF_ITEMS[n])
+				cContFile += AllTrim(FWX3Titulo(::DEF_ITEMS[n][nItem])) + " (" + ::DEF_ITEMS[n][nItem] + "):" + ::DATA_ITEMS[n][nItem] + CRLF
+			Next
+		Next
+	EndIf
+	
+	//Commit
+	cContFile += CRLF 
+	cContFile +=  CRLF + "Clicar em Confirmar" + CRLF
+	cContFile += "Clicar em Fechar" + CRLF
+
+	//CheckPoint
+	cContFile += CRLF 
+	cContFile += "Resultado Esperado" + CRLF + CRLF
+	cContFile += "Clicar em Visualizar" + CRLF
+	cContFile += "Verifique os campos abaixo: " + CRLF //Check Points
+	For n := 1 to Len(::CKP_QUERY) 
+		cContFile += CRLF //Check Points
+		If n > 1
+			cContFile += "Posiciona na linha: " + allTrim(str(n)) + CRLF //Check Points
+		Else
+			cContFile += "Clicar na folder: " + ::CKP_QUERY[n][2] + CRLF //Check Points
+		EndIf
+		//Query
+		For nItem := 3 to Len(::CKP_DEF[n])
+			IF!(::CKP_RESULT[n][nItem] == NIL)
+				cContFile += AllTrim(FWX3Titulo(::CKP_DEF[n][nItem])) + " (" + ::CKP_DEF[n][nItem] + "):" + ::CKP_RESULT[n][nItem] + CRLF
+			EndIf
+		Next
+	Next
+	cContFile += "Clicar em Fechar" + CRLF
+
+	cContFile += CRLF
+	conout("Criado TXT")
+
+	FWRITE(nBFile,cContFile)
+	
+	FCLOSE(nBFile)
+
+	MsgInfo(cFileName + "_" +  cName + ".TXT successfully generated", 'Test Case')
+EndIf
 
 Return
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} FieldTypeStr
+Return the type transformed in string, ex 01/01/2001 returns "CtoD('01/01/2001')"
+
+@author andrews.egas
+@since 09/10/2018
+@return cRet as character | String with the content 
+
+@parameters oModelFields as Object	 | Model Structure
+			cField 		as character | field id
+			cValue 		as character | Value to transform
+@version 1.0
+
+/*/
+//-------------------------------------------------------------------
+Method FieldTypeStr(oModelFields, cField, cValue) Class UTCClass
+Local cRet 		:= ""
+Local nPosField := 0
+Local cType 	:= ""
+
+nPosField := Ascan(oModelFields,{|x| Alltrim(x[3]) == allTrim(cField)})
+
+IF nPosField > 0 .And. !oModelFields[nPosFIeld][MODEL_FIELD_VIRTUAL] //14 - Virtual
+		cType := oModelFields[nPosFIeld][4]
+		If cType $ 'C|M'
+			cRet := "'" + cValue + "'"
+		ElseIf cType $ 'L|N'
+			cRet :=  cValue
+		ElseIf cType $ 'D'
+			cRet := "cToD('" + cValue + "')"
+		EndIf
+EndIf
+
+
+Return cRet

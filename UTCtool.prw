@@ -269,6 +269,7 @@ cRet += "Local oHelper   := FWTestHelper():New()" + CRLF + CRLF
 
 cRet += "Return oHelper" + CRLF + CRLF
 
+
 cRet += "/*/{Protheus.doc} " + cFileName + ":" + cRoutine + "_01()" + CRLF
 cRet += "auto creation" + CRLF
 cRet += "@author 	UTCTOOL"				+ CRLF
@@ -276,31 +277,36 @@ cRet += "@since 		" + dtoc(dDatabase)	+ CRLF
 cRet += "@version 	1.0"					+ CRLF
 cRet += "/*/" + CRLF
 cRet += "METHOD " + cRoutine + "_01() CLASS " + cFileName + CRLF + CRLF
-cRet += "Return " + cRoutine + "TC('" + cRoutine + "_01','" + cRoutine + "')" + CRLF + CRLF
+If cPaisLoc == 'RUS'
+	cRet += "Return " + cRoutine + "TC('" + cRoutine + "_01','" + cRoutine + "')" + CRLF + CRLF
 
-cRet += "/*/{Protheus.doc} " + cRoutine + "TC" + CRLF
-cRet += "Static function to encapsulate MVC tests with CSV files " + CRLF
-cRet += "@param		cCase = Identifier string for the test case" + CRLF
-cRet += "			cModel = MVC Model" + CRLF
-cRet += "@return		FWTestHelper" + CRLF
-cRet += "@author 	UTCTOOL"				+ CRLF
-cRet += "@since 		" + dtoc(dDatabase)	+ CRLF
-cRet += "@version 	1.0"					+ CRLF
-cRet += "/*/" 								+ CRLF
-cRet += "Static Function " + cRoutine + "TC( cCase, cModel)" + CRLF
-cRet += "Local oModel		:= FWLoadModel( cModel )" + CRLF
-cRet += "Local oHelper	:= FWScriptAuto():New()" + CRLF + CRLF
 
-cRet += "oHelper:LoadCSV( cCase )" + CRLF
-cRet += "If oHelper:IsOk()" + CRLF
-cRet += "	oModel:SetOperation( oHelper:nOper )" + CRLF
-cRet += "	oModel:Activate()" + CRLF + CRLF
-cRet += "	oHelper:SetModel( oModel )" + CRLF
-cRet += "	oHelper:SetCommit()" + CRLF
-cRet += "	oHelper:Activate()" + CRLF
-cRet += "Endif" + CRLF + CRLF
+	cRet += "/*/{Protheus.doc} " + cRoutine + "TC" + CRLF
+	cRet += "Static function to encapsulate MVC tests with CSV files " + CRLF
+	cRet += "@param		cCase = Identifier string for the test case" + CRLF
+	cRet += "			cModel = MVC Model" + CRLF
+	cRet += "@return		FWTestHelper" + CRLF
+	cRet += "@author 	UTCTOOL"				+ CRLF
+	cRet += "@since 		" + dtoc(dDatabase)	+ CRLF
+	cRet += "@version 	1.0"					+ CRLF
+	cRet += "/*/" 								+ CRLF
+	cRet += "Static Function " + cRoutine + "TC( cCase, cModel)" + CRLF
+	cRet += "Local oModel		:= FWLoadModel( cModel )" + CRLF
+	cRet += "Local oHelper	:= FWScriptAuto():New()" + CRLF + CRLF
 
-cRet += "Return oHelper:GetOHelper()" + CRLF
+	cRet += "oHelper:LoadCSV( cCase )" + CRLF
+	cRet += "If oHelper:IsOk()" + CRLF
+	cRet += "	oModel:SetOperation( oHelper:nOper )" + CRLF
+	cRet += "	oModel:Activate()" + CRLF + CRLF
+	cRet += "	oHelper:SetModel( oModel )" + CRLF
+	cRet += "	oHelper:SetCommit()" + CRLF
+	cRet += "	oHelper:Activate()" + CRLF
+	cRet += "Endif" + CRLF + CRLF
+
+	cRet += "Return oHelper:GetOHelper()" + CRLF
+Else
+	cRet += "Return oHelper"
+EndIf
 
 Return cRet
 
@@ -371,10 +377,10 @@ Local cUser as Character
 Local cPass as Character
 cRet := ""
 //values, it must be changed for some parameter
-cCompany 	:= "00"
-cBranch 	:= "102030"
+cCompany 	:= "T1"
+cBranch 	:= "D MG 01"
 cUser 		:= "admin"
-cPass		:= ""
+cPass		:= "1234"
 //-------------------------
 
 cRet += "#INCLUDE 'PROTHEUS.CH'" + CRLF

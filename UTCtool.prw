@@ -14,30 +14,40 @@ test
 /*/
 //-------------------------------------------------------------------
 Function UTCTool()
-Local oBrowse as Object
-Local nRepeat as numeric
+Local oUTCTool   := UTCClass():New()
+Local cVersion as Character
+
+cVersion := "V2.00"
 
 cRoutine := "code"
-nRepeat := 1
-While nRepeat == 1 .AND. !Empty(cRoutine)
-	//source code
-	cRoutine := Alltrim(GetRoutine("Routine"))
 
-	cRoutine := alltrim(cRoutine)
+UTCHttpVersion(cVersion)
+
+While !Empty(cRoutine)
+	//source code
+	cRoutine := Alltrim(GetRoutine("Routine - UTCTOOL " + cVersion))
+
 	If !Empty(cRoutine)
 		if !Empty( cPaisLoc ) .AND. FindFunction( cRoutine + cPaisLoc )
 			lLocaliza := .T.	
 		EndIf
 
-		//IF MVC
-		oBrowse := ToolBrowseDef()
-		If ValType(oBrowse) <> "L"
-			oBrowse:Activate()
-			nRepeat := 0
-		Elseif !oBrowse
-			nRepeat := 1
-			Alert("It's not MVC routine or there is no BrowseDef")
+		If ValType(FWLoadModel(cRoutine)) <> "NIL"
+			oUTCTool:SetProgram(cRoutine)
+
+			FWEventInstall(oUTCTool) //installs the Class UTCClass on all models
+
+			FWButtonInstall({|| oUTCTool:SetNegative()},"Negative Test") //installs the button
+
+			&(cRoutine +'()') //Run the routine
+
+			FWEventUninstall() //uninstall class
+
+			FWButtonUninstall() //uninstall class
+		Else
+			Alert("It is not MVC routine")
 		EndIf
+
 	EndIf
 
 EndDo
@@ -475,3 +485,39 @@ cRet += "Return oHelper" + CRLF
 
 Return cRet
 // Russia_R5
+
+/*/{Protheus.doc} UTCHttpVersion
+Checking version of UTCTOOL
+@author Andrews Egas
+@since 16/10/2018
+@version 1.0
+@project MA3
+/*/
+Static Function UTCHttpVersion(cVersion)
+Local cRetGet
+Local cInfo	as Character
+Local aInfo as array
+Local n as numeric
+cInfo := ""
+
+cRetGet := HttpGet('https://github.com/andrewsegas/docs/blob/master/utcversion.txt')
+
+If ValType(cRetGet) == 'C'
+	cInfo := SubStr(cRetGet,at("#utcversionation#",cRetGet)+17)
+	cInfo := SubStr(cInfo,1,at("#\utcversionation#",cInfo)-1)
+	aInfo := StrTokArr2(cInfo,"::")
+	
+	If cVersion <> aInfo[1]
+		cInfo := "Você esta usando a versão: " + cVersion + CRLF
+		cInfo += "Ultima versão do UTCTOOL: " + aInfo[1] + CRLF + CRLF
+		
+		For n := 2 to Len(aInfo)
+			cInfo += decodeUtf8(aInfo[n]) + CRLF
+		Next
+		cInfo += CRLF + "Atualização disponivel no link: "+ CRLF +"https://code.engpro.totvs.com.br/andrews.egas/UTCTOOL"
+		MsgInfo(cInfo,"Oi, UTCTOOL tem atualização")
+	EndIf
+
+EndIf
+
+Return

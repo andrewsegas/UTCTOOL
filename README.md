@@ -20,7 +20,9 @@ A Unit Test Creator Tool foi desenvolvida para facilitar a criação de casos de
 
 ### Utilização
 1 - Atualizar a LIB RC23 (http://arte.engpro.totvs.com.br/totvstec_framework/lib/lib/versao12/lobo-guara/RC23/)
+
 2 - Aplicar tttp120_V3_00_x64.prw
+
 3 - executar o smartclient com os seguintes parametros de atalho
 
 

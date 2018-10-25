@@ -63,7 +63,7 @@ CLASS UTCClass FROM FwModelEvent
 	METHOD GeneratePrw()
 	METHOD GenerateKanoah()
 	METHOD FieldTypeStr()
-	
+	METHOD GenerateTIR()
 
 END CLASS
 
@@ -342,7 +342,8 @@ aFunc := array(2)
 cQuery := ""
 ctable := oSubModel:GetStruct():GetTable()[1] 
 	
-	If !Empty(ctable )
+	//check if already exist the same table (MVC MODELO 1) the same table master and grid
+	If !Empty(ctable ) .And. Ascan(::CKP_DEF,{|x| allTrim(ctable) $ Alltrim(x[2])}) == 0
 		aKey := STRTOKARR((ctable)->(IndexKey(1)),'+')
 		If at("_FILIAL",aKey[1] ) > 0
 			aDel(aKey,1)	
@@ -352,7 +353,7 @@ ctable := oSubModel:GetStruct():GetTable()[1]
 
 		For n:=1 to Len(aKey)	
 			//validation for fields with function in the KEY example DTOS(FIELD)
-			If oSubModel:GetModel():GetIdField(aKey[n]) > 0
+			If oSubModel:GetIdField(aKey[n]) > 0
 				aValues[n] := oSubModel:GetValue(aKey[n])
 			Else
 				//delete functions in the key, example DTOS(FIELD)
@@ -1183,8 +1184,8 @@ Else
 	If !Empty(::DEF_ITEMS[1][2]) //check if we have details in this test
 		For n := 1 to Len(::DEF_ITEMS) 
 			
-			//validation to check if we need to use addLine
-			If n > 1 .And. ::DATA_ITEMS[n][2] == ::DATA_ITEMS[(n-1)][2] 
+			//validation to check if we need to use addLine (Ex:CNBDETAIL2)
+			If n > 1 .And. Val(substr(::DEF_ITEMS[n][2],Len(::DEF_ITEMS[n][2]),1)) > 1
 				cContFile += CRLF 
 				cContFile += "oHelper:UTAddLine('" + ::DATA_ITEMS[n][2] + "')" + CRLF
 			EndIf
@@ -1207,7 +1208,7 @@ Else
 
 	//CheckPoint
 	cContFile += CRLF 
-	cContFile += "//Start Check Points" + CRLF
+	cContFile += "//Start Check Points" + CRLF	
 	 
 	For n := 1 to Len(::CKP_QUERY) 
 		cContFile += CRLF //Check Points
@@ -1232,9 +1233,9 @@ Else
 	
 	FCLOSE(nBFile)
 	
-	::GenerateKanoah(cName)
-	
 	MsgInfo(cFileName + "_" +  cName + ".PRW successfully generated", 'Test Case')
+	::GenerateKanoah(cName)
+	::GenerateTIR(cName)
 EndIf
 
 Return
@@ -1310,14 +1311,14 @@ Else
 	If !Empty(::DEF_ITEMS[1][2]) //check if we have details in this test
 		For n := 1 to Len(::DEF_ITEMS) 
 			
-			//validation to check if we need to use addLine
-			If n > 1 .And. ::DATA_ITEMS[n][2] == ::DATA_ITEMS[(n-1)][2] 
-				cContFile += CRLF + "SETA PARA BAIXO" + CRLF
-			EndIf
-			
 			cContFile += CRLF //start Details
 			cContFile += CRLF + "Clicar na Folder " + ::DATA_ITEMS[n][2] + CRLF
 			
+			//validation to check if we need to use addLine
+			If n > 1 .And. Val(substr(::DEF_ITEMS[n][2],Len(::DEF_ITEMS[n][2]),1)) > 1
+				cContFile += CRLF + "SETA PARA BAIXO" + CRLF
+			EndIf
+
 			For nItem := 3 to Len(::DEF_ITEMS[n])
 				cContFile += AllTrim(FWX3Titulo(::DEF_ITEMS[n][nItem])) + " (" + ::DEF_ITEMS[n][nItem] + "):" + ::DATA_ITEMS[n][nItem] + CRLF
 			Next
@@ -1336,8 +1337,8 @@ Else
 	cContFile += "Verifique os campos abaixo: " + CRLF //Check Points
 	For n := 1 to Len(::CKP_QUERY) 
 		cContFile += CRLF //Check Points
-		If n > 1
-			cContFile += "Posiciona na linha: " + allTrim(str(n)) + CRLF //Check Points
+		If Len(::CKP_DEF[n][2]) > 3 .And. Val(SubStr(::CKP_DEF[n][2],Len(::CKP_DEF[n][2]))) > 1
+			cContFile += "Posiciona na linha: " + (SubStr(::CKP_DEF[n][2],Len(::CKP_DEF[n][2]))) + CRLF //Check Points
 		Else
 			cContFile += "Clicar na folder: " + ::CKP_QUERY[n][2] + CRLF //Check Points
 		EndIf
@@ -1358,6 +1359,161 @@ Else
 	FCLOSE(nBFile)
 
 	MsgInfo(cFileName + "_" +  cName + ".TXT successfully generated", 'Test Case')
+EndIf
+
+Return
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} GenerateTIR
+generates the TIR Test Case in python
+
+@author andrews.egas
+@since 19/10/2018
+@version 1.0
+
+/*/
+//-------------------------------------------------------------------
+METHOD GenerateTIR(cName) Class UTCClASS
+Local lRet as logical 
+Local nBFile as numeric
+Local cFileName as Character
+Local cContFile as Character
+Local n 	as numeric
+Local nItem as numeric
+Local cSearch as Character
+Local nGrid as numeric
+lRet := .T.
+
+cFileName := ::_cProgram 
+
+// Kanoah Creation 
+If !File(cFileName + "_" + cName + ".py") //check if the file already exist, and create next one
+	nBFile := FCREATE(cFileName + "_" +  cName + ".py")
+Else
+	nBFile := FCREATE(cFileName + "_" + cName + "_002"+".py")//changehere
+EndIf
+
+If nBFile == -1 //check if was possible to crate the file
+  MsgStop('Erro ao criar destino. Ferror = '+str(ferror(),4),'Erro')
+  lRet := .F.
+Else
+	//variables
+	cContFile :="" //start writing the file
+	cContFile +="from tir import Webapp" + CRLF
+	cContFile +="import unittest" + CRLF + CRLF
+	
+	cContFile +="class "+ cFileName + "(unittest.TestCase):"+ CRLF + CRLF
+	
+	cContFile +="	@classmethod" + CRLF
+	cContFile +="	def setUpClass(inst):" + CRLF
+	cContFile +="		inst.oHelper = Webapp()" + CRLF
+	cContFile +="		inst.oHelper.Setup('SIGAFIN','" + dtoc(dDatabase) + "','T1','D MG 01 ','05')" + CRLF
+	
+	cContFile +="		inst.oHelper.Program('"+ cFileName + "')" + CRLF + CRLF
+	
+	cContFile +="	def test_" + cFileName +  "_CT001(self):" + CRLF + CRLF
+	
+	//DBSEEK 
+	If !Empty(::SEEK[1]) //check if there is SEEK in this test case (Update or delete)
+		cContFile += CRLF
+		cContFile += "		self.oHelper.SearchBrowse(f'" + ::SEEK[4] + "')" + CRLF
+		cContFile += CRLF
+	EndIf
+	
+	//Feed Variables and Activate
+	If ::OPERATION[2] == '3'
+		cContFile += "		self.oHelper.SetButton('Incluir')" + CRLF 
+	ElseIf ::OPERATION[2] == '4'
+		cContFile += "		self.oHelper.SetButton('Alterar')" + CRLF 
+	ElseIf ::OPERATION[2] == '5'
+		cContFile += "		self.oHelper.SetButton('Excluir')" + CRLF 
+	EndIf
+
+	cContFile += "		self.oHelper.SetBranch('" + AllTrim(xFilial()) + "')" + CRLF
+
+	//Master
+	If !Empty(::DEF_MASTER[1][2]) //If we don't have Master it is DELETE
+		For n := 1 to Len(::DEF_MASTER)  
+			cContFile += CRLF //master Head
+			//master
+			For nItem := 3 to Len(::DEF_MASTER[n]) 
+				cContFile += "		self.oHelper.SetValue('" + AllTrim(FWX3Titulo(::DEF_MASTER[n][nItem])) + "','" + Alltrim(::DATA_MASTER[n][nItem]) + "')" +  CRLF
+			Next
+		Next
+	EndIf
+
+	//Details
+	If !Empty(::DEF_ITEMS[1][2]) //check if we have details in this test
+		For n := 1 to Len(::DEF_ITEMS) 
+			
+			cContFile += CRLF //start Details
+			cContFile += CRLF + "		self.oHelper.ClickFolder('" + ::DATA_ITEMS[n][2] + "') " + CRLF
+
+			//validation to check if we need to use addLine
+			If n > 1 .And. Val(substr(::DEF_ITEMS[n][2],Len(::DEF_ITEMS[n][2]),1)) > 1
+				cContFile += CRLF + '		self.oHelper.SetKey("DOWN", grid=True)' + CRLF
+			EndIf
+
+			For nItem := 3 to Len(::DEF_ITEMS[n])
+				cContFile += "		self.oHelper.SetValue('" + AllTrim(FWX3Titulo(::DEF_ITEMS[n][nItem])) + "', '" + AllTrim(::DATA_ITEMS[n][nItem]) + "', grid=True)" + CRLF
+			Next
+		Next
+	EndIf
+	
+	//Commit
+	cContFile += CRLF 
+	cContFile += "		self.oHelper.SetButton('Salvar')" + CRLF 
+
+    cContFile += "		self.oHelper.SetButton('Cancelar')" + CRLF 
+
+	//CheckPoint
+	cContFile += CRLF 
+	cSearch := ""
+	For n:= 3 to Len(::CKP_RESULT[Len(::CKP_RESULT)])
+		cSearch += ::CKP_RESULT[Len(::CKP_RESULT)][n]
+	Next
+
+	cContFile += "		self.oHelper.SearchBrowse(f'" + cSearch + "')" + CRLF + CRLF 
+	cContFile += "		self.oHelper.SetButton('Visualizar')" + CRLF + CRLF 
+
+	For n := 1 to Len(::CKP_QUERY) 
+		cContFile += CRLF //Check Points
+		If Len(::CKP_DEF[n][2]) > 3 
+			nGrid := Val(SubStr(::CKP_DEF[n][2],Len(::CKP_DEF[n][2])))
+		Else
+			nGrid := 0
+		EndIf
+
+		//Query
+		For nItem := 3 to Len(::CKP_DEF[n])
+			IF!(::CKP_RESULT[n][nItem] == NIL)
+				If nGrid == 0 //Master
+					cContFile += "		self.oHelper.CheckResult('"+ AllTrim(FWX3Titulo(::CKP_DEF[n][nItem])) +"','" + allTrim(::CKP_RESULT[n][nItem]) +"')" + CRLF
+				Else //Detail
+					cContFile += "		self.oHelper.CheckResult('"+ AllTrim(FWX3Titulo(::CKP_DEF[n][nItem])) +"','" + Alltrim(::CKP_RESULT[n][nItem]) + "',grid=True, line=" + alltrim(str(nGrid)) +"')" + CRLF
+				EndIf
+			EndIf
+		Next
+	Next
+	cContFile += "		self.oHelper.LoadGrid()" + CRLF
+	cContFile += "		self.oHelper.SetButton('Cancelar')" + CRLF
+	cContFile += "		self.oHelper.AssertTrue()" + CRLF
+
+	cContFile += "	@classmethod" + CRLF
+    cContFile += "	def tearDownClass(inst):" + CRLF
+    cContFile +="		inst.oHelper.TearDown()" + CRLF
+
+	cContFile += "if __name__ == '__main__':" + CRLF
+    cContFile += "	unittest.main()" + CRLF
+
+	cContFile += CRLF
+	conout("Criado Python")
+
+	FWRITE(nBFile,cContFile)
+	
+	FCLOSE(nBFile)
+
+	MsgInfo(cFileName + "_" +  cName + ".py successfully generated", 'Test Case')
 EndIf
 
 Return

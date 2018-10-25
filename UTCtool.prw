@@ -17,7 +17,7 @@ Function UTCTool()
 Local oUTCTool   := UTCClass():New()
 Local cVersion as Character
 
-cVersion := "V2.00"
+cVersion := "V3.00"
 
 cRoutine := "code"
 
@@ -35,15 +35,15 @@ While !Empty(cRoutine)
 		If ValType(FWLoadModel(cRoutine)) <> "NIL"
 			oUTCTool:SetProgram(cRoutine)
 
-			FWEventInstall(oUTCTool) //installs the Class UTCClass on all models
-
-			FWButtonInstall({|| oUTCTool:SetNegative()},"Negative Test") //installs the button
+			FWMVCEventGeneric():InstallEvent(oUTCTool) //installs the Class UTCClass on all models
+			
+			FWMVCEventGeneric():InstallButton({|| oUTCTool:SetNegative()},"Negative Test") //installs the button
 
 			&(cRoutine +'()') //Run the routine
 
-			FWEventUninstall() //uninstall class
+			FWMVCEventGeneric():UninstallEvent() //uninstall class
 
-			FWButtonUninstall() //uninstall class
+			FWMVCEventGeneric():UninstallButton() //uninstall class
 		Else
 			Alert("It is not MVC routine")
 		EndIf
@@ -514,7 +514,7 @@ If ValType(cRetGet) == 'C'
 		For n := 2 to Len(aInfo)
 			cInfo += decodeUtf8(aInfo[n]) + CRLF
 		Next
-		cInfo += CRLF + "Atualização disponivel no link: "+ CRLF +"https://code.engpro.totvs.com.br/andrews.egas/UTCTOOL"
+		cInfo += CRLF + "Atualização disponivel no link: "+ CRLF +"https://github.com/andrewsegas/UTCTOOL"
 		MsgInfo(cInfo,"Oi, UTCTOOL tem atualização")
 	EndIf
 

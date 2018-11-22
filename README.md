@@ -44,10 +44,14 @@ Inserir o codigo fonte desejado (rotina)
 
 ![Negativo!](/docs/im4.png "Negativo")
 
+#### Escolher os arquivos que deseja gerar
+
+![files!](/docs/im9.png "Files")
 
 #### Nomear o arquivo após finalizar o teste clicando em confirmar ou fechar (fechar apenas em caso de teste negativo)
 
 ![Name!](/docs/im5.png "Name")
+
 
 #### Verificar a geração dos arquivos na pasta system
 TestCase (PRW), Kanoah (Texto) e TIR (python)

@@ -552,7 +552,7 @@ Function UTCCkBox()
 Local oDlg, oButton, oCheck1, oCheck2, oCheck3, oCheck4, oCheck5
 Local aCheck := Array(5,.F.) //1-TestCase.PRW, 2- TestGroup.PRW. 3- TestSuite.PRW. 4- Kanoah, 5- TestCase TIR python, 6- Template.CSV
 
- DEFINE DIALOG oDlg TITLE "Arquivos desejados" FROM 180,180 TO 380,450 PIXEL
+ DEFINE DIALOG oDlg TITLE "Arquivos desejados" FROM 180,180 TO 350,450 PIXEL
 
    oCheck1 := TCheckBox():New(05,05,'TestCase PRW',			{||aCheck[1]},oDlg,100,210,,	{|| aCheck[1] := !aCheck[1]},,,,,,.T.,,,)
    oCheck2 := TCheckBox():New(15,05,'TestGroup/Suite PRW',	{||aCheck[2]},oDlg,100,210,,	{|| aCheck[2] := !aCheck[2]},,,,,,.T.,,,)

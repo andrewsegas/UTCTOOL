@@ -61,7 +61,7 @@ TestCase (PRW), Kanoah (Texto) e TIR (python)
 ![Kanoah!](/docs/im8.png "Geração")
 
 Video de exemplo: 
-![Video!](/docs/UTCTOOL.mp4 "Video")
+https://www.youtube.com/watch?v=maLGjmY--js&feature=youtu.be
 
 Video Coffe & Code UTCTOOL: 
 https://drive.google.com/open?id=11uhiKFwW-fio2XUYivpy-0qaifMpEVPE

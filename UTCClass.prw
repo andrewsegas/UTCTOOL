@@ -64,6 +64,7 @@ CLASS UTCClass FROM FwModelEvent
 	METHOD GenerateKanoah()
 	METHOD FieldTypeStr()
 	METHOD GenerateTIR()
+	METHOD UtcFinalGenerate()
 
 END CLASS
 
@@ -162,7 +163,6 @@ Method Activate(oModel,lCopy) Class UTCClass
 ::cNegField := ""
 ::cNegVal	:= ""
 ::lNegativeTest := .F.
-::lTemplate	:= (cPaisLoc == 'RUS')
 
 If !Empty(::DEF_MASTER)
 	//clear arrays for a new test case
@@ -213,6 +213,7 @@ Model pos validation method to generate CSV
 Method DeActivate(oModel) Class UTCClass
 Local oSubModel as object
 Local cModelId as character
+Local aCheck as array
 
 If Empty(::CKP_QUERY[1][2]) .And. ::lNegativeTest
 	//if is negative test we neet to set just one checkpoint
@@ -220,20 +221,13 @@ If Empty(::CKP_QUERY[1][2]) .And. ::lNegativeTest
 	oSubModel := oModel:GetModel(cModelId)
 	
 	::UpdNegative(oSubModel,cModelId)
-	If ::lTemplate
-		::GenerateCsv()
-	Else
-		::GeneratePrw(oModel)
-	EndIf
+	
+	::UtcFinalGenerate(oModel)	//Generate Files
 	
 ElseIf !Empty(::CKP_QUERY[1][2]) .Or. ::OPERATION[2] == "5" // if is empty, it is just closing the routine or delete operatio
 
-	If ::lTemplate
-		::GenerateCsv()
-	Else
-		::GeneratePrw(oModel)
-	EndIf
-	
+	::UtcFinalGenerate(oModel)	//Generate Files
+
 EndIf
 
 
@@ -731,7 +725,7 @@ generates the CSV file
 
 /*/
 //-------------------------------------------------------------------
-METHOD GenerateCsv() Class UTCClASS
+METHOD GenerateCsv(cName) Class UTCClASS
 Local lRet as logical 
 Local nBFile as numeric
 Local cFileName as Character
@@ -747,8 +741,6 @@ If FindFunction(::_cProgram + cPaisLoc)
 Else
 	//Generate Test Case normal
 EndIf
-
-cName := Alltrim(GetRoutine("Test Name"))
 
 cFileName := ::_cProgram 
 
@@ -1096,21 +1088,18 @@ generates the PRW file
 
 /*/
 //-------------------------------------------------------------------
-METHOD GeneratePRW(oModel) Class UTCClASS
+METHOD GeneratePRW(oModel, cName) Class UTCClASS
 Local lRet as logical 
 Local nBFile as numeric
 Local cFileName as Character
 Local cContFile as Character
 Local n 	as numeric
 Local nItem as numeric
-Local cName as character
 Local cConteType as Character
 
 
 
 lRet := .T.
-
-cName := Alltrim(GetRoutine("Test Name"))
 
 cFileName := ::_cProgram 
 
@@ -1234,8 +1223,6 @@ Else
 	FCLOSE(nBFile)
 	
 	MsgInfo(cFileName + "_" +  cName + ".PRW successfully generated", 'Test Case')
-	::GenerateKanoah(cName)
-	::GenerateTIR(cName)
 EndIf
 
 Return
@@ -1261,6 +1248,7 @@ Local nItem as numeric
 lRet := .T.
 
 cFileName := ::_cProgram 
+
 
 // Kanoah Creation 
 If !File(cFileName + "_" + cName + ".TXT") //check if the file already exist, and create next one
@@ -1306,6 +1294,8 @@ Else
 			Next
 		Next
 	EndIf
+
+
 
 	//Details
 	If !Empty(::DEF_ITEMS[1][2]) //check if we have details in this test
@@ -1551,5 +1541,40 @@ IF nPosField > 0 .And. !oModelFields[nPosFIeld][MODEL_FIELD_VIRTUAL] //14 - Virt
 		EndIf
 EndIf
 
-
 Return cRet
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} UtcFinal
+Return the type transformed in string, ex 01/01/2001 returns "CtoD('01/01/2001')"
+
+@author andrews.egas
+@since 09/10/2018
+@return cRet as character | String with the content 
+
+@parameters oModel as Object	 | Model Structure
+@version 1.0
+
+/*/
+//-------------------------------------------------------------------
+Method UtcFinalGenerate(oModel)  Class UTCClass
+
+aCheck := UTCCkBox() //1-TestCase.PRW, 2- Group/Suite.PRW 3- Kanoah, 4- TestCase TIR python, 5- Template.CSV
+cName := Alltrim(GetRoutine("Test Name"))
+
+If aCheck[1]
+	::GeneratePrw(oModel,cName)
+EndIf
+If aCheck[2]
+	 UTCSources()	
+EndIf
+If aCheck[3]
+	::GenerateKanoah(cName)
+EndIf
+If aCheck[4]
+	::GenerateTIR(cName)
+EndIf
+If aCheck[5]
+	::GenerateCsv(cName)
+EndIf
+
+Return

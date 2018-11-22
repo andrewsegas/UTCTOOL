@@ -17,7 +17,7 @@ Function UTCTool()
 Local oUTCTool   := UTCClass():New()
 Local cVersion as Character
 
-cVersion := "V3.00"
+cVersion := "V3.10"
 
 cRoutine := "code"
 
@@ -26,12 +26,12 @@ UTCHttpVersion(cVersion)
 While !Empty(cRoutine)
 	//source code
 	cRoutine := Alltrim(GetRoutine("Routine - UTCTOOL " + cVersion))
-
+	
 	If !Empty(cRoutine)
 		if !Empty( cPaisLoc ) .AND. FindFunction( cRoutine + cPaisLoc )
 			lLocaliza := .T.	
 		EndIf
-
+		UTCControl(cVersion, cRoutine)
 		If ValType(FWLoadModel(cRoutine)) <> "NIL"
 			oUTCTool:SetProgram(cRoutine)
 
@@ -498,6 +498,7 @@ Local cRetGet
 Local cInfo	as Character
 Local aInfo as array
 Local n as numeric
+
 cInfo := ""
 
 cRetGet := HttpGet('https://github.com/andrewsegas/docs/blob/master/utcversion.txt')
@@ -517,7 +518,48 @@ If ValType(cRetGet) == 'C'
 		cInfo += CRLF + "Atualização disponivel no link: "+ CRLF +"https://github.com/andrewsegas/UTCTOOL"
 		MsgInfo(cInfo,"Oi, UTCTOOL tem atualização")
 	EndIf
-
 EndIf
 
 Return
+
+/*/{Protheus.doc} UTCcontrol
+UTCTOOL Control
+@author Andrews Egas
+@since 22/11/2018
+@version 1.0
+@project MA3
+/*/
+Static Function UTCcontrol(cVersion, cRotina)
+Local aInfo as array
+Local cUser as Character
+Local cMachine as Character
+aInfo 	:= GetUserInfoArray()
+cUser	:= aInfo[1][1]
+cMachine 	:= aInfo[1][2]
+
+HttpGet('http://ec2-18-222-207-238.us-east-2.compute.amazonaws.com:8081/utcinfo/?user='+ cUser + '&version=' + cVersion + '&routine=' + cRotina + '&machine=' + cMachine)
+
+Return
+
+/*/{Protheus.doc} UTCCkBox
+Check box to control which file the user wants
+@author Andrews Egas
+@since 22/11/2018
+@version 1.0
+@project MA3
+/*/
+Function UTCCkBox()
+Local oDlg, oButton, oCheck1, oCheck2, oCheck3, oCheck4, oCheck5
+Local aCheck := Array(5,.F.) //1-TestCase.PRW, 2- TestGroup.PRW. 3- TestSuite.PRW. 4- Kanoah, 5- TestCase TIR python, 6- Template.CSV
+
+ DEFINE DIALOG oDlg TITLE "Arquivos desejados" FROM 180,180 TO 380,450 PIXEL
+
+   oCheck1 := TCheckBox():New(05,05,'TestCase PRW',			{||aCheck[1]},oDlg,100,210,,	{|| aCheck[1] := !aCheck[1]},,,,,,.T.,,,)
+   oCheck2 := TCheckBox():New(15,05,'TestGroup/Suite PRW',	{||aCheck[2]},oDlg,100,210,,	{|| aCheck[2] := !aCheck[2]},,,,,,.T.,,,)
+   oCheck3 := TCheckBox():New(25,05,'Descritivo Kanoah',	{||aCheck[3]},oDlg,100,210,,	{|| aCheck[3] := !aCheck[3]},,,,,,.T.,,,)
+   oCheck4 := TCheckBox():New(35,05,'TestCase TIR Python',	{||aCheck[4]},oDlg,100,210,,	{|| aCheck[4] := !aCheck[4]},,,,,,.T.,,,)
+   oCheck5 := TCheckBox():New(45,05,'Template CSV',			{||aCheck[5]},oDlg,100,210,,	{|| aCheck[5] := !aCheck[5]},,,,,,.T.,,,)
+	
+	oButton:=tButton():New(55,10,'Ok',oDlg,{||oDlg:End()},100,15,,,,.T.)
+ ACTIVATE DIALOG oDlg CENTERED
+Return aCheck 

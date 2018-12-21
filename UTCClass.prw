@@ -284,7 +284,7 @@ Local nPosModel as numeric
 Local nPosField as numeric
 Local cValue	as character
 
-If cAction == "SETVALUE" .And. xValue <> NIL
+If cAction == "SETVALUE" .And. xValue <> NIL .And. ::DEF_MASTER <> NIL
 	If ValType(xValue) == "C"
 		cValue := xValue
 	ElseIf ValType(xValue) == "D"
@@ -409,65 +409,70 @@ Local aRelation as Array
 Local nIsInRel	as numeric
 local aFunc	as Array
 Local nNext as numeric
+Local oModelOw as Object
 Local xValue
 
-aFunc := array(2)
-cQuery := ""
-ctable := oSubModel:oFormModelStruct:getTable()[1]
-aRelation:= oSubModel:getrelation()[1]
+If ::DEF_MASTER <> NIL //If it runs before it open the view will be .F.
+	aFunc := array(2)
+	cQuery := ""
+	ctable := oSubModel:oFormModelStruct:getTable()[1]
+	aRelation:= oSubModel:getrelation()[1]
 
-	aKey := STRTOKARR((ctable)->(IndexKey(1)),'+')
-	If at("_FILIAL",aKey[1] ) > 0
-		aDel(aKey,1)
-		aSize(aKey,Len(aKey)-1)
-	EndIf
-	aValues:= array(len(aKey))
+		aKey := STRTOKARR((ctable)->(IndexKey(1)),'+')
+		If at("_FILIAL",aKey[1] ) > 0
+			aDel(aKey,1)
+			aSize(aKey,Len(aKey)-1)
+		EndIf
+		aValues:= array(len(aKey))
 
-	For n:=1 to Len(aKey)
-		//if the key field is in relation it was not update manually, lets update
-		nIsInRel := Ascan(aRelation,{|x| Alltrim(x[1]) == allTrim(aKey[n])})
-		if nIsInRel > 0
-			aValues[n] := ::getRelatVal(oSubModel,cModelId,aRelation[nIsInRel]) //Take the resault of relation
-		Else
-			If oSubModel:GetModel():GetIdField(aKey[n]) > 0
-				aValues[n] := oSubModel:GetValue(aKey[n],nLine)
+		For n:=1 to Len(aKey)
+			//if the key field is in relation it was not update manually, lets update
+			nIsInRel := Ascan(aRelation,{|x| Alltrim(x[1]) == allTrim(aKey[n])})
+			if nIsInRel > 0
+				aValues[n] := ::getRelatVal(oSubModel,cModelId,aRelation[nIsInRel]) //Take the resault of relation
 			Else
-				//delete functions in the key, example DTOS(FIELD)
-				If (at("(",akey[n]) > 0) 
+				
+				If (at("(",akey[n]) > 0)
+					//delete functions in the key, example DTOS(FIELD)				
 					aFunc[1] := substr(akey[n],1,at("(",akey[n])) //save first part of function
 					aKey[n] := substr(aKey[n],at("(",akey[n])+1) 
 					
 					nNext := Iif(at(",",akey[n])>0,at(",",akey[n]),at(")",akey[n])) //take next point
 					aFunc[2] := substr(akey[n],nNext,len(akey[n])) //save seconf part of function
 					aKey[n]	:= substr(aKey[n],1,nNext-1)
-
+				EndIf		
+					
+				If oSubModel:GetModel():GetIdField(aKey[n],@oModelOw) > 0
+					xValue := oModelOw:GetValue(aKey[n],nLine)
+				Else
 					xValue := oSubModel:GetValue(aKey[n],nLine)
-					If ValType(xValue) == "D"
-						aValues[n] := DTOS(xValue) //no parameters
-					ElseIf ValType(xValue) == "N"
-						aValues[n] := alltrim(STR(xValue))
-						aValues[n] := &(afunc[1]+aValues[n]+aFunc[2]) //exec function with parameters that was in the key
-					Else
-						aValues[n] := xValue
-					EndIf
 				EndIf
+				
+				If ValType(xValue) == "D"
+					aValues[n] := DTOS(xValue) //no parameters
+				ElseIf ValType(xValue) == "N"
+					aValues[n] := alltrim(STR(xValue))
+					aValues[n] := &(afunc[1]+aValues[n]+aFunc[2]) //exec function with parameters that was in the key
+				Else
+					aValues[n] := xValue
+				EndIf
+			
 			EndIf
-		EndIf
-		
-		cQuery += AllTrim(aKey[n]) + " = '"  + aValues[n] + "'" //return values for query
-		If n < Len(aKey)
-			cQuery += " AND "
-		EndIf
-		
-		If ::OPERATION[2] <> "4" // update doesnt need to set key
-			//update KEY fields, maybe they were not  changed manually
-			::UpdDetail(cModelID,nLine,aKey[n],aValues[n])
-		EndIf
+			
+			cQuery += AllTrim(aKey[n]) + " = '"  + aValues[n] + "'" //return values for query
+			If n < Len(aKey)
+				cQuery += " AND "
+			EndIf
+			
+			If ::OPERATION[2] <> "4" // update doesnt need to set key
+				//update KEY fields, maybe they were not  changed manually
+				::UpdDetail(cModelID,nLine,aKey[n],aValues[n])
+			EndIf
 
-	Next
+		Next
 
-	::UpdCheckPoint(ctable,cQuery,aKey,aValues,AllTrim(str(nLine)))
-
+		::UpdCheckPoint(ctable,cQuery,aKey,aValues,AllTrim(str(nLine)))
+EndIf
 conout(" GRID POS ")
 
 Return .T.

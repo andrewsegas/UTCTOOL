@@ -249,9 +249,12 @@ If cAction == "SETVALUE" .And. xValue <> NIL .And. ::DEF_MASTER <> NIL
 		cValue := xValue
 	ElseIf ValType(xValue) == "D"
 		cValue := allTrim(dtoC(xValue))
-	Else
+	ElseIf ValType(xValue) == "L" // adicionado validacao para variavel logica
+		cValue := allTrim(cValToChar(xValue))	
+	Else	
 		cValue := allTrim(str(xValue))
 	EndIf
+	
 	
 	
 	//If oSubModel:CanSetValue(cId)
@@ -289,6 +292,8 @@ If cAction == "SETVALUE" .And. xValue <> NIL .And. ::DEF_MASTER <> NIL
 		cValue := xValue
 	ElseIf ValType(xValue) == "D"
 		cValue := allTrim(dtoC(xValue))
+	ElseIf ValType(xValue) == "L" // adicionado validacao para variavel logica
+		cValue := allTrim(cValToChar(xValue))	
 	Else
 		cValue := allTrim(str(xValue))
 	EndIf

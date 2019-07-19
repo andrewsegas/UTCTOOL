@@ -5,9 +5,10 @@ Ferramenta para fazer a captura de ações do usuario em tempo real em qualquer 
 A Unit Test Creator Tool foi desenvolvida para facilitar a criação de casos de testes apenas utilizando a rotina alvo pelo SmartClient o caso de teste é gerado automaticamente de acordo com as ações efetuadas!
 
 ### Novas Functionalidades
-+ Geração automática do Caso de Teste de Interface em Python para utilizar o TIR (https://github.com/totvs/tir)
-+ Geração automática do Caso de Teste em texto para inclusão no Kanoah
-+ Geração do arquivo .PRW (casos de testes utilizados no Brasil)
++ Execução do UTCTOOL apenas com parâmetro no .INI do server
++ Geração automática do Script para executar as ações automaticamente
++ Utilização do parametro utcfiles=123456 para gerar os arquivos de forma transparente
++ Geração dos arquivos na pasta UTCTOOL no Protheus Data
 
 ### Em desenvolvimento
 + Perceutal de cobertuda do fonte ao finalizar a criação do teste (Coverage)
@@ -19,20 +20,26 @@ A Unit Test Creator Tool foi desenvolvida para facilitar a criação de casos de
 + Testes negativos (validação de campo, modelo e submodelo)
 
 ### Utilização
-1 - Atualizar a LIB RC23 (http://arte.engpro.totvs.com.br/totvstec_framework/lib/lib/versao12/lobo-guara/RC23/)
+1 - Aplicar tttp120_V4_00_x64.prw https://github.com/andrewsegas/UTCTOOL/releases
 
-2 - Aplicar tttp120_V3_00_x64.prw https://github.com/andrewsegas/UTCTOOL/releases
+  ou
+  
+1 - Compilar os arquivos UTCTOOL.prw e UTCCLASS.prw, em caso de falta de chave de compilação basta mudar a função UTCTOOL para User Function
 
-3 - executar o smartclient com os seguintes parametros de atalho
+2 - Incluir os seguintes parametros no appserver.INI
+## Parâmetros
+| Parametro            |                Description                           |        valor                     | Default|
+|:--------------------:|:----------------------------------------------------:|:--------------------------------:|:------:|
+| UTCTOOL              | Utiliza ou não UTCTOOL                               | 1 = sim , 0 = não                | 0 |
+| UTCFILES             | arquivos que serão gerados                           | 1 = TestCase PRW , 2 - TestGroup/Suite , 3 = Descritivo Kanoah , 4 = TestCase TIR python ,  5 = Template CSV , 6 = Rotina Automatica                | 1,3 |
 
+ps: o parâmetro utcfiles pode ser utilizado com diversos numeros
 
-`...\SmartClient.exe -m -p=SIGABPM -c=[conexão] -e=[ambiente] -a=[NUMERO DO MODULO] -a=UTCTOOL`
-
-
-
-Inserir o codigo fonte desejado (rotina)
+Na configuração do ambiente deve ser colocado da seguinte forma
+ex:
 
 ![Rotina!](/docs/im1.png "Rotina")
+
 
 #### Iniciar o teste
 
@@ -44,16 +51,8 @@ Inserir o codigo fonte desejado (rotina)
 
 ![Negativo!](/docs/im4.png "Negativo")
 
-#### Escolher os arquivos que deseja gerar
 
-![files!](/docs/im9.png "Files")
-
-#### Nomear o arquivo após finalizar o teste clicando em confirmar ou fechar (fechar apenas em caso de teste negativo)
-
-![Name!](/docs/im5.png "Name")
-
-
-#### Verificar a geração dos arquivos na pasta system
+#### Verificar a geração dos arquivos na pasta UTCTOOL
 TestCase (PRW), Kanoah (Texto) e TIR (python)
 
 ![Template!](/docs/im6.png "Geração")
@@ -73,7 +72,7 @@ https://drive.google.com/open?id=11uhiKFwW-fio2XUYivpy-0qaifMpEVPE
 + Inclusão de parametro automatico F12
 + mais
 
-### Conhecimentos necessários
+### Conhecimentos para manutenção
 FwModelEvent (http://tdn.totvs.com/pages/viewpage.action?pageId=269552294)
 
 em caso da geração CSV (Russia)

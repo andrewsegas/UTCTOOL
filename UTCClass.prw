@@ -13,6 +13,7 @@
 /*/
 CLASS UTCClass FROM FwModelEvent
 	DATA _cProgram as char
+	DATA _lAuto as logical
 	DATA cNegField as char
 	DATA cNegVal	 as char
 	DATA Def0		 	as Array
@@ -43,6 +44,7 @@ CLASS UTCClass FROM FwModelEvent
 	
 	METHOD New()  constructor 	
 	METHOD SetProgram()
+	METHOD SetAuto()
 	//Padroes do Observer
 	METHOD DeActivate()
 	METHOD Activate()
@@ -64,6 +66,7 @@ CLASS UTCClass FROM FwModelEvent
 	METHOD GenerateKanoah()
 	METHOD FieldTypeStr()
 	METHOD GenerateTIR()
+	METHOD GenerateRotAuto()
 	METHOD UtcFinalGenerate()
 
 END CLASS
@@ -76,6 +79,7 @@ constructor
 /*/
 METHOD new() class UTCClASS
 ::_cProgram := ""
+::_lAuto	:= .F.
 
 //Def0
 ::Def0		:= Array(3)
@@ -150,6 +154,19 @@ Set the program  - routine
 Method SetProgram(cProgram) Class UTCClass
 
 ::_cProgram := cProgram
+
+Return
+
+/*/{Protheus.doc} setProgram
+Set if is automatic from .INI 
+
+@author Andrews.Egas
+@since 17/07/2018
+@version 1.0
+/*/
+Method SetAuto(lAuto) Class UTCClass
+
+::_lAuto := lAuto
 
 Return
 
@@ -450,7 +467,7 @@ If ::DEF_MASTER <> NIL //If it runs before it open the view will be .F.
 				If oSubModel:GetModel():GetIdField(aKey[n],@oModelOw) > 0
 					xValue := oModelOw:GetValue(aKey[n],nLine)
 				Else
-					xValue := oSubModel:GetValue(aKey[n],nLine)
+					Loop
 				EndIf
 				
 				If ValType(xValue) == "D"
@@ -476,7 +493,9 @@ If ::DEF_MASTER <> NIL //If it runs before it open the view will be .F.
 
 		Next
 
-		::UpdCheckPoint(ctable,cQuery,aKey,aValues,AllTrim(str(nLine)))
+		If !Empty(aValues) .And. !Empty(aValues[1])
+			::UpdCheckPoint(ctable,cQuery,aKey,aValues,AllTrim(str(nLine)))
+		EndIf
 EndIf
 conout(" GRID POS ")
 
@@ -755,10 +774,10 @@ EndIf
 cFileName := ::_cProgram 
 
 // CSV Creation 
-If !File(cFileName + "_" + cName + ".CSV") //check if the file already exist, and create next one
-	nBFile := FCREATE(cFileName + "_" +  cName + ".CSV")
+If !File("\UTCTOOL\" +cFileName + "_" + cName + ".CSV") //check if the file already exist, and create next one
+	nBFile := FCREATE("\UTCTOOL\" + cFileName + "_" +  cName + ".CSV")
 Else
-	nBFile := FCREATE(cFileName + "_" + cName + "_002"+".CSV")//changehere
+	nBFile := FCREATE("\UTCTOOL\" + cFileName + "_" + cName + "_002"+".CSV")//changehere
 EndIf
 
 If nBFile == -1 //check if was possible to crate the file
@@ -1114,10 +1133,10 @@ lRet := .T.
 cFileName := ::_cProgram 
 
 // PRW Creation 
-If !File(cFileName + "_" + cName + ".PRW") //check if the file already exist, and create next one
-	nBFile := FCREATE(cFileName + "_" +  cName + ".PRW")
+If !File("\UTCTOOL\" +cFileName + "_" + cName + ".PRW") //check if the file already exist, and create next one
+	nBFile := FCREATE("\UTCTOOL\" + cFileName + "_" +  cName + ".PRW")
 Else
-	nBFile := FCREATE(cFileName + "_" + cName + "_002"+".PRW")//changehere
+	nBFile := FCREATE("\UTCTOOL\" + cFileName + "_" + cName + "_002"+".PRW")//changehere
 EndIf
 
 If nBFile == -1 //check if was possible to crate the file
@@ -1261,10 +1280,10 @@ cFileName := ::_cProgram
 
 
 // Kanoah Creation 
-If !File(cFileName + "_" + cName + ".TXT") //check if the file already exist, and create next one
-	nBFile := FCREATE(cFileName + "_" +  cName + ".TXT")
+If !File("\UTCTOOL\" +cFileName + "_" + cName + ".TXT") //check if the file already exist, and create next one
+	nBFile := FCREATE("\UTCTOOL\" + cFileName + "_" +  cName + ".TXT")
 Else
-	nBFile := FCREATE(cFileName + "_" + cName + "_002"+".TXT")//changehere
+	nBFile := FCREATE("\UTCTOOL\" + cFileName + "_" + cName + "_002"+".TXT")//changehere
 EndIf
 
 If nBFile == -1 //check if was possible to crate the file
@@ -1387,10 +1406,10 @@ lRet := .T.
 cFileName := ::_cProgram 
 
 // Kanoah Creation 
-If !File(cFileName + "_" + cName + ".py") //check if the file already exist, and create next one
-	nBFile := FCREATE(cFileName + "_" +  cName + ".py")
+If !File("\UTCTOOL\" +cFileName + "_" + cName + ".py") //check if the file already exist, and create next one
+	nBFile := FCREATE("\UTCTOOL\" + cFileName + "_" +  cName + ".py")
 Else
-	nBFile := FCREATE(cFileName + "_" + cName + "_002"+".py")//changehere
+	nBFile := FCREATE("\UTCTOOL\" + cFileName + "_" + cName + "_002"+".py")//changehere
 EndIf
 
 If nBFile == -1 //check if was possible to crate the file
@@ -1519,6 +1538,127 @@ EndIf
 Return
 
 //-------------------------------------------------------------------
+/*/{Protheus.doc} GenerateRotAuto
+generates the PRW file for automatic routines
+
+@author andrews.egas
+@since 18/07/2019
+@version 1.0
+
+/*/
+//-------------------------------------------------------------------
+METHOD GenerateRotAuto(oModel, cName) Class UTCClASS
+Local lRet as logical 
+Local nBFile as numeric
+Local cFileName as Character
+Local cContFile as Character
+Local n 	as numeric
+Local nItem as numeric
+Local cConteType as Character
+
+lRet := .T.
+
+cFileName := ::_cProgram 
+
+// PRW Creation 
+If !File("\UTCTOOL\" +cFileName + "_AUTO_" + cName + ".PRW") //check if the file already exist, and create next one
+	nBFile := FCREATE("\UTCTOOL\" + cFileName + "_AUTO_" +  cName + ".PRW")
+Else
+	nBFile := FCREATE("\UTCTOOL\" + cFileName + "_AUTO_" + cName + "_002"+".PRW")//changehere
+EndIf
+
+If nBFile == -1 //check if was possible to crate the file
+  MsgStop('Erro ao criar destino. Ferror = '+str(ferror(),4),'Erro')
+  lRet := .F.
+Else
+	//variables
+	cContFile :="" //start writing the file
+	
+	cContFile += "/*/{Protheus.doc} " + cFileName + "Auto" + cFileName + "_01()" + CRLF
+	cContFile += "auto creation" + CRLF
+	cContFile += "@author 	UTCTOOL"				+ CRLF
+	cContFile += "@since 		" + dtoc(dDatabase)	+ CRLF
+	cContFile += "@version 	1.0"					+ CRLF
+	cContFile += "/*/" + CRLF
+
+	cContFile += "User Function " + cFileName + "_01()" + CRLF
+	cContFile += "Local dDataBase		:= cTod('" + dToC(&(::DEF_VARS[3])) +"')" + CRLF
+	
+	cContFile += "Local oModel	:= FWLoadModel('" + cFileName + "')" + CRLF 
+
+	//DBSEEK 
+	If !Empty(::SEEK[1]) //check if there is SEEK in this test case (Update or delete)
+		cContFile += CRLF
+		cContFile += "dbSelectArea('" + ::SEEK[2] + "')" + CRLF
+		cContFile += "('" + ::SEEK[2] + "')->(DbSetOrder( " + ::SEEK[3] + " ) )" + CRLF
+		cContFile += "('" + ::SEEK[2] + "')->(DbSeek(" + ::SEEK[4] + "))" + CRLF
+		cContFile += CRLF
+	EndIf
+	
+	//Feed Variables and Activate
+	cContFile += "oModel:SetOperation(" + ::OPERATION[2] + ")" + CRLF
+	cContFile += "oModel:Activate()" + CRLF + CRLF
+	
+	
+	//Master
+	If !Empty(::DEF_MASTER[1][2]) //If we don't have Master it is DELETE
+		For n := 1 to Len(::DEF_MASTER)  
+			cContFile += CRLF //master Head
+			//master
+			cContFile += "//Start " + ::DEF_MASTER[n][2] + CRLF
+
+			For nItem := 3 to Len(::DEF_MASTER[n])
+				//return the transformation	
+				cConteType := ::FieldTypeStr(oModel:GetModel(::DEF_MASTER[n][2]):GetStruct():GetFields(),::DEF_MASTER[n][nItem],::DATA_MASTER[n][nItem])
+				If !Empty(cConteType)
+					cContFile += "oModel:GetModel('" + ::DEF_MASTER[n][2] + "'):SetValue('" + ::DEF_MASTER[n][nItem] + "', " + cConteType + ")" + CRLF
+				EndIf
+			Next
+		Next
+	EndIf
+
+	//Details
+	If !Empty(::DEF_ITEMS[1][2]) //check if we have details in this test
+		For n := 1 to Len(::DEF_ITEMS) 
+			
+			//validation to check if we need to use addLine (Ex:CNBDETAIL2)
+			If n > 1 .And. Val(substr(::DEF_ITEMS[n][2],Len(::DEF_ITEMS[n][2]),1)) > 1
+				cContFile += CRLF 
+				cContFile += "oModel:GetModel('" + ::DATA_ITEMS[n][2] + "'):AddLine()" + CRLF
+			EndIf
+			
+			cContFile += CRLF //start Details
+			cContFile += "//Start " + ::DATA_ITEMS[n][2] + CRLF
+			
+			For nItem := 3 to Len(::DEF_ITEMS[n])
+				cConteType := ::FieldTypeStr(oModel:GetModel(::DATA_ITEMS[n][2]):GetStruct():GetFields(),::DEF_ITEMS[n][nItem],::DATA_ITEMS[n][nItem])
+				If !Empty(cConteType)	
+					cContFile += "oModel:GetModel('" + ::DATA_ITEMS[n][2] + "'):SetValue('" + ::DEF_ITEMS[n][nItem] + "', " + cConteType + ")" + CRLF
+				EndIf
+			Next
+		Next
+	EndIf
+	
+	//Commit
+	cContFile += CRLF 
+	cContFile += "oModel:CommitData()" + CRLF
+
+	cContFile += "Return " + CRLF
+
+	cContFile += CRLF
+	conout("Criado Auto PRW")
+
+	FWRITE(nBFile,cContFile)
+	
+	FCLOSE(nBFile)
+	
+	MsgInfo(cFileName + "_AUTO_" +  cName + ".PRW successfully generated", 'Test Case')
+EndIf
+
+Return
+
+
+//-------------------------------------------------------------------
 /*/{Protheus.doc} FieldTypeStr
 Return the type transformed in string, ex 01/01/2001 returns "CtoD('01/01/2001')"
 
@@ -1567,12 +1707,32 @@ Return the type transformed in string, ex 01/01/2001 returns "CtoD('01/01/2001')
 /*/
 //-------------------------------------------------------------------
 Method UtcFinalGenerate(oModel)  Class UTCClass
+Local bError    := ErrorBlock({|e| MyErr(e)})
+Local cName	:= ""
 
-aCheck := UTCCkBox() //1-TestCase.PRW, 2- Group/Suite.PRW 3- Kanoah, 4- TestCase TIR python, 5- Template.CSV
-cName := Alltrim(GetRoutine("Test Name"))
+if !EMPTY(oModel:cSource)
+	::SetProgram(oModel:cSource)
+EndIf
+
+If !(::_lAuto)
+	aCheck := UTCCkBox() //1-TestCase.PRW, 2- Group/Suite.PRW 3- Kanoah, 4- TestCase TIR python, 5- Template.CSV
+	cName := Alltrim(GetRoutine("Test Name"))
+Else
+	If GetSrvProfString("utcfiles","0") <> "0"
+		cfiles := GetSrvProfString("utcfiles","0")
+		aCheck := {"1" $ cfiles , "2" $ cfiles  , "3" $ cfiles , "4" $ cfiles , "5" $ cfiles , "6" $  cfiles} //create just TestCase e Kanoah
+	else
+		aCheck := {.T.,.F.,.T.,.F.,.F.,.F.} //create just TestCase e Kanoah
+	EndIf
+
+	cName := "_" + STRTRAN(Time(),":","_")
+EndIf
 
 If aCheck[1]
-	::GeneratePrw(oModel,cName)
+//	BEGIN SEQUENCE
+		::GeneratePrw(oModel,cName)
+//	END SEQUENCE
+//	ErrorBlock(bError)
 EndIf
 If aCheck[2]
 	 UTCSources()	
@@ -1586,5 +1746,12 @@ EndIf
 If aCheck[5]
 	::GenerateCsv(cName)
 EndIf
+If aCheck[6]
+	::GenerateRotAuto(oModel,cName)
+EndIf
 
 Return
+
+Static Function MyErr()
+	BREAK
+Return .T.

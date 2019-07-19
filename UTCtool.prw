@@ -13,44 +13,62 @@ test
 @version 1.0
 /*/
 //-------------------------------------------------------------------
-Function UTCTool()
+Function UTCTool(lAuto)
 Local oUTCTool   := UTCClass():New()
 Local cVersion as Character
+Default lAuto := .F.
 
-cVersion := "V3.10"
+cVersion := "V4.00"
 
 cRoutine := "code"
+	
+If !ExistDir("\UTCTOOL")
+	MakeDir( "\UTCTOOL") //make the new directory to save UTCTOOL files
+EndIf
 
 UTCHttpVersion(cVersion)
+If !lAuto
+	While !Empty(cRoutine)
+		//source code
+		cRoutine := Alltrim(GetRoutine("Routine - UTCTOOL " + cVersion))
+		
+		If !Empty(cRoutine)
+			if !Empty( cPaisLoc ) .AND. FindFunction( cRoutine + cPaisLoc )
+				lLocaliza := .T.	
+			EndIf
+			UTCControl(cVersion, cRoutine)
+			If ValType(FWLoadModel(cRoutine)) <> "NIL"
+				oUTCTool:SetProgram(cRoutine)
 
-While !Empty(cRoutine)
-	//source code
-	cRoutine := Alltrim(GetRoutine("Routine - UTCTOOL " + cVersion))
+				FWMVCEventGeneric():InstallEvent(oUTCTool) //installs the Class UTCClass on all models
+				
+				FWMVCEventGeneric():InstallButton({|| oUTCTool:SetNegative()},"Negative Test") //installs the button
+
+				&(cRoutine +'()') //Run the routine
+
+				FWMVCEventGeneric():UninstallEvent() //uninstall class
+
+				FWMVCEventGeneric():UninstallButton() //uninstall class
+			Else
+				Alert("It is not MVC routine")
+			EndIf
+
+		EndIf
+
+	EndDo
+Else
 	
-	If !Empty(cRoutine)
-		if !Empty( cPaisLoc ) .AND. FindFunction( cRoutine + cPaisLoc )
-			lLocaliza := .T.	
-		EndIf
-		UTCControl(cVersion, cRoutine)
-		If ValType(FWLoadModel(cRoutine)) <> "NIL"
-			oUTCTool:SetProgram(cRoutine)
+	UTCControl(cVersion, cRoutine)
+	cRoutine := "_AUTO_"
+	
+	oUTCTool:SetAuto(.T.)
+	oUTCTool:SetProgram(cRoutine)
 
-			FWMVCEventGeneric():InstallEvent(oUTCTool) //installs the Class UTCClass on all models
-			
-			FWMVCEventGeneric():InstallButton({|| oUTCTool:SetNegative()},"Negative Test") //installs the button
+	FWMVCEventGeneric():InstallEvent(oUTCTool) //installs the Class UTCClass on all models
+	
+	FWMVCEventGeneric():InstallButton({|| oUTCTool:SetNegative()},"Negative Test") //installs the button
 
-			&(cRoutine +'()') //Run the routine
-
-			FWMVCEventGeneric():UninstallEvent() //uninstall class
-
-			FWMVCEventGeneric():UninstallButton() //uninstall class
-		Else
-			Alert("It is not MVC routine")
-		EndIf
-
-	EndIf
-
-EndDo
+EndIf
 
 Return
 
@@ -515,29 +533,10 @@ If ValType(cRetGet) == 'C'
 		For n := 2 to Len(aInfo)
 			cInfo += decodeUtf8(aInfo[n]) + CRLF
 		Next
-		cInfo += CRLF + "Atualização disponivel no link: "+ CRLF +"https://github.com/andrewsegas/UTCTOOL"
+		cInfo += CRLF + "Atualizão disponivel no link: "+ CRLF +"https://github.com/andrewsegas/UTCTOOL"
 		MsgInfo(cInfo,"Oi, UTCTOOL tem atualização")
 	EndIf
 EndIf
-
-Return
-
-/*/{Protheus.doc} UTCcontrol
-UTCTOOL Control
-@author Andrews Egas
-@since 22/11/2018
-@version 1.0
-@project MA3
-/*/
-Static Function UTCcontrol(cVersion, cRotina)
-Local aInfo as array
-Local cUser as Character
-Local cMachine as Character
-aInfo 	:= GetUserInfoArray()
-cUser	:= aInfo[1][1]
-cMachine 	:= aInfo[1][2]
-
-HttpGet('http://ec2-18-222-207-238.us-east-2.compute.amazonaws.com:8081/utcinfo/?user='+ cUser + '&version=' + cVersion + '&routine=' + cRotina + '&machine=' + cMachine)
 
 Return
 
@@ -550,7 +549,7 @@ Check box to control which file the user wants
 /*/
 Function UTCCkBox()
 Local oDlg, oButton, oCheck1, oCheck2, oCheck3, oCheck4, oCheck5
-Local aCheck := Array(5,.F.) //1-TestCase.PRW, 2- TestGroup.PRW. 3- TestSuite.PRW. 4- Kanoah, 5- TestCase TIR python, 6- Template.CSV
+Local aCheck := Array(6,.F.) //1-TestCase.PRW, 2- TestGroup.PRW. 3- TestSuite.PRW. 4- Kanoah, 5- TestCase TIR python, 6- Template.CSV
 
  DEFINE DIALOG oDlg TITLE "Arquivos desejados" FROM 180,180 TO 350,450 PIXEL
 
@@ -559,7 +558,121 @@ Local aCheck := Array(5,.F.) //1-TestCase.PRW, 2- TestGroup.PRW. 3- TestSuite.PR
    oCheck3 := TCheckBox():New(25,05,'Descritivo Kanoah',	{||aCheck[3]},oDlg,100,210,,	{|| aCheck[3] := !aCheck[3]},,,,,,.T.,,,)
    oCheck4 := TCheckBox():New(35,05,'TestCase TIR Python',	{||aCheck[4]},oDlg,100,210,,	{|| aCheck[4] := !aCheck[4]},,,,,,.T.,,,)
    oCheck5 := TCheckBox():New(45,05,'Template CSV',			{||aCheck[5]},oDlg,100,210,,	{|| aCheck[5] := !aCheck[5]},,,,,,.T.,,,)
+   oCheck6 := TCheckBox():New(55,05,'Rotina automatica',	{||aCheck[6]},oDlg,100,210,,	{|| aCheck[6] := !aCheck[6]},,,,,,.T.,,,)
 	
-	oButton:=tButton():New(55,10,'Ok',oDlg,{||oDlg:End()},100,15,,,,.T.)
+	oButton:=tButton():New(65,10,'Ok',oDlg,{||oDlg:End()},100,15,,,,.T.)
  ACTIVATE DIALOG oDlg CENTERED
 Return aCheck 
+
+/*/{Protheus.doc} UTCcontrol
+UTCTOOL Control
+@author Andrews Egas
+@since 10/07/2019
+@version 1.0
+@project MA3
+/*/
+Function UTCcontrol(cFunction, cRoutine)
+    Local aHeaders  := Nil
+    Local cAddress  :=  "http://metrics.engpro.totvs.com.br/write?db=utctool&u=utctool&p=pmgkjTHd7uZ2eTuR"
+    Local cUsrNme   := ""
+    Local cData     := ""
+    
+    Default cFunction := ''
+   
+	If !Empty(cFunction)
+		aHeaders  := {"Content-Type: plain/text"}
+		cUsrNme   := LogUserName()//SafeMacro("LogUserName()","unknow")
+
+		//cData := InfluxLine("routine_access", { {"routine", cFunction},{"userName",  cUsrNme} }, {{"value", 1}}, "FwTimestamp(4)", "unknow")
+		cData := InfluxLine("routine_access", { {"routine", cRoutine},{"userName",  cUsrNme} }, {{"value", 1}}, FwTimestamp(4), "unknow")
+		//cData := "UTCTOOL"
+		If !Empty(cData)
+			//StartJob("HttpPost", &("GetEnvServer()"), .F., cAddress, NIL, cData, 30, aHeaders)
+		EndIf
+
+		aSize(aHeaders,0)
+		aHeaders := Nil
+	EndIf
+
+
+Return .T.
+
+/*/{Protheus.doc} UTCcontrol
+UTCTOOL Control
+@author Andrews Egas
+@since 10/07/2019
+@version 1.0
+@project MA3
+/*/
+Static Function InfluxLine(cMeasurement, aTagSet, aFieldSet, cTimeStamp, cDefault)
+    Local cLine := InfluxEscape(cMeasurement)
+    Local cKey  := ""
+    Local cVal  := ""
+    Local nI    := 0
+
+    Default aTagSet := {}
+    Default cDefault := ""
+
+    For nI := 1 To Len(aTagSet)
+        cKey := InfluxEscape(aTagSet[nI][1])
+
+        If aTagSet[nI][2] != NIL
+            cVal := InfluxEscape(aTagSet[nI][2])
+        Else
+            cVal := InfluxEscape(cDefault)
+        EndIf
+
+        cLine += "," + cKey + "=" + cVal
+    Next nI
+
+    cLine += " "
+
+    For nI := 1 To Len(aFieldSet)
+        cKey := InfluxEscape(aFieldSet[nI][1])
+
+        If aFieldSet[nI][2] != NIL
+            cVal := InfluxEscape(aFieldSet[nI][2])
+        Else
+            cVal := InfluxEscape(cDefault)
+        EndIf
+
+        If nI == 1
+            cLine += cKey + "=" + cVal
+        Else
+            cLine += "," + cKey + "=" + cVal
+        EndIf
+    Next nI
+
+    If cTimeStamp != NIL
+        cLine += " " + PadR(cTimeStamp, 19, "0")
+    EndIf
+Return cLine
+
+Static Function InfluxEscape(cString)
+    cString := cVAltochar(cString)
+    cReturn := cString 
+
+    cReturn := StrTran(cReturn, " ", "\ ")
+    cReturn := StrTran(cReturn, ",", "\,")
+    cReturn := StrTran(cReturn, '"', '\"f')
+Return cReturn
+
+
+/*/{Protheus.doc} u_AfterLogin
+UTCTOOL install when we have utctool=1 in appserver.ini
+@author Andrews Egas
+@since 17/07/2019
+@version 1.0
+@project MA3
+/*/
+User Function AfterLogin()
+
+Local cId	:= ParamIXB[1]
+Local cNome := ParamIXB[2] 
+
+If GetSrvProfString("utctool","0") == "1"
+	UTCTool(.T.)
+	Conout("Usuário "+ cId + " - " + Alltrim(cNome)+" Utilizando UTCTOOL "+ Time())
+EndIf
+
+Return
